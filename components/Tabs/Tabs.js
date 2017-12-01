@@ -16,60 +16,72 @@ class TabItem {
 }
 
 class TabLink {
-  constructor(element, parent) {
+  constructor(element) {
     this.element = element; // attach dom element to object
-    this.tabs = parent; // attach parent to object
-    this.tabItem = this.tabs.getTab(this.element.dataset.tab); // assign this to the associated tab using the parent's "getTab" method by passing it the correct data
-    // reassign this.tabItem to be a new instance of TabItem, passing it this.tabItem
-    this.tabItem = new TabItem(this.tabItem);
-    this.element.addEventListener("click", () => {
-      this.tabs.updateActive(this);
-      this.select();
+
+    // add event listener to capture the click event when clicking tablink
+    // and set the dataset value to event tabData
+    this.element.addEventListener("click", (event) => {
+      event.tabData = this.element.dataset.tab;
     });
   }
 
   select() {
     // select this link
-    // select the associated tab
     this.element.classList.add("Tabs__link--selected");
-    this.tabItem.select();
   }
 
   deselect() {
     // deselect this link
-    // deselect the associated tab
     this.element.classList.remove("Tabs__link--selected");
-    this.tabItem.deselect();
   }
 }
 
 class Tabs {
   constructor(element) {
     this.element = element; // attaches the dom node to the object as "this.element"
+
+    // get all the links
     this.links = element.querySelectorAll(".Tabs__link");
-    this.links = Array.from(this.links).map(link => {
-      return new TabLink(link, this);
+    this.links = Array.from(this.links).reduce((obj, link) => {
+      obj[link.dataset.tab] = new TabLink(link);
+      return obj;
+    }, {});
+
+    // get all the items
+    this.items = element.querySelectorAll(".Tabs__item");
+    this.items = Array.from(this.items).reduce((obj, item) => {
+      obj[item.dataset.tab] = new TabItem(item);
+      return obj;
+    }, {});
+   
+    // add event listener to capture the click event when clicking the tablink
+    // and update the tabitem
+    this.element.addEventListener("click", (event) => {
+      if (event.tabData) {
+        this.updateActive(event.tabData);
+        event.stopPropagation();
+      }
     });
-    this.activeLink = this.links[0];
+
     this.init();
   }
-
+  
   init() {
     // select the first link and tab upon ititialization
-    this.activeLink.select();
+    this.activeData = this.element.querySelector(".Tabs__link--default");
+    this.activeData = this.activeData ? this.activeData.dataset.tab : this.links[0].dataset.tab;
+    this.updateActive(this.activeData);
   }
 
-  updateActive(newActive) {
-    // deselect the old active link
-    // assign the new active link
-    this.activeLink.deselect();
-    this.activeLink = newActive;
-    this.activeLink.select();
-  }
-
-  getTab(data) {
-    // use the tab item classname and the data attribute to select the proper tab
-    return this.element.querySelector(`.Tabs__item[data-tab='${data}']`);
+  updateActive(data) {
+    if (this.activeData !== null) {
+      this.links[this.activeData].deselect();
+      this.items[this.activeData].deselect();
+    }
+    this.links[data].select();
+    this.items[data].select();
+    this.activeData = data;
   }
 }
 
